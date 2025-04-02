@@ -1,6 +1,7 @@
 #include "CKernel.h"
 #include "INetMediator/TcpServerMediator.h"
 #include <iostream>
+#include "Net/def.h"
 using namespace std;
 CKernel* CKernel::pCkernel = nullptr;
 CKernel::CKernel():m_pTcpServerMediator(nullptr)
@@ -50,7 +51,22 @@ void CKernel::closeServer()
 void CKernel::dealData(char* data, int len, unsigned long from)
 {
 	cout << __func__ << endl;
-	cout << "data : " << data << ", len : " << len << endl;
-	char s[] = "服务端开始处理数据 ing ........";
-	m_pTcpServerMediator->sendData(s, sizeof(s), from);
+}
+
+void CKernel::dealRegisterRq(char* data, int len, unsigned long from)
+{
+	cout << __func__ << endl;
+	_STRU_REGISTER_RQ* rq = (_STRU_REGISTER_RQ*)data;
+	cout << "name : " << rq->name << ", password : " << rq->password << " , tel : " << rq->tel << endl;
+	packType pack = *(int*)data;
+	_STRU_REGISTER_RS rs;
+}
+
+void CKernel::dealLoginRq(char* data, int len, unsigned long from)
+{
+	cout << __func__ << endl;
+	_STRU_LOGIN_RQ* rq = (_STRU_LOGIN_RQ*)data;
+	cout << "password : " << rq->password << ", tel : " << rq->tel << endl;
+	packType pack = *(int*)data;
+	_STRU_LOGIN_RS rs;
 }
