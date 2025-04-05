@@ -19,6 +19,12 @@ public:
 	//关闭服务器(回收资源、关闭网络、断开跟数据库的连接)
 	void closeServer();
 
+	//获取当前用户信息以及好友的信息
+	void getUserInfoAndFriendInfo(int userId);
+
+	//根据id查询用户信息
+	void getInfoById(int userId, _STRU_FRIEND_INFO* info);
+
 	//处理所有数据
 	void dealData(char* data, int len, unsigned long from);
 	//处理注册请求

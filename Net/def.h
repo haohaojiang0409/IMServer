@@ -34,6 +34,12 @@
 #define _DEF_CHAT_RS				(_DEF_PROTOCOL_BASE + 8)
 //下线请求
 #define _DEF_OFFLINE_RQ				(_DEF_PROTOCOL_BASE + 9)
+//用户信息
+#define _DEF_FRIEND_INFO			(_DEF_PROTOCOL_BASE + 10)
+
+//用户状态
+#define _def_status_online          (0)
+#define _def_status_offline         (1)
 
 //结构体类型变量
 typedef int packType;
@@ -127,7 +133,7 @@ typedef struct _STRU_ADD_FRIEND_RS {
 #define _DEF_CONTENT_LENGTH			(8*1024)
 
 typedef struct _STRU_CHAT_RQ {
-	_STRU_CHAT_RQ() :userId(0), friendId(0) , type(_DEF_CHAR_RQ) {
+	_STRU_CHAT_RQ() :userId(0), friendId(0) , type(_DEF_CHAT_RQ) {
 		memset(content, 0, _DEF_MAX_LENGTH);
 	}
 	packType type;
@@ -152,3 +158,17 @@ typedef struct _STRU_OFFLINE_RQ {
 	packType type;
 	int result;
 }_STRU_OFFLINE_RQ;
+
+//用户信息结构体
+typedef struct _STRU_FRIEND_INFO {
+	_STRU_FRIEND_INFO():type(_DEF_FRIEND_INFO),id(0),iconId(0),status(_def_status_offline) {
+		memset(name, 0, _DEF_MAX_LENGTH);
+		memset(feeling, 0, _DEF_MAX_LENGTH);
+	}
+	packType type;
+	int id;
+	int iconId;
+	int status;
+	char name[_DEF_MAX_LENGTH];
+	char feeling[_DEF_MAX_LENGTH];
+}_STRU_FRIEND_INFO;
