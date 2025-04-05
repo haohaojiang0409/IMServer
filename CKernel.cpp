@@ -65,26 +65,73 @@ void CKernel::getUserInfoAndFriendInfo(int userId)
 	_STRU_FRIEND_INFO userInfo;
 	getInfoById(userId, &userInfo);
 	//把自己的信息发给客户端
-	if () {
-		m_pTcpServerMediator->sendData((char*)&userInfo, sizeof(userInfo), 16);
+	if (m_mapIdSocket.count(userId) > 0) {
+		m_pTcpServerMediator->sendData((char*)&userInfo, sizeof(userInfo), m_mapIdSocket[userId]);
+	}else {
+		cout << "m_mapIdSocket中没有id ： " << userId << endl;
+		return;
 	}
 	//根据自己的Id查询好友的id列表
-
+	char sql[1024] = "";
+	list<string> lstStr;
+	sprintf_s(sql, "select idB from t_friend where idA = '%d';", userId);
+	if (!mysql.SelectMySql(sql, 1, lstStr)) {
+		//1.没有连接数据库		2.sql语句有语法错误 3.列名和列表对不上（把日志中的sql语句拷贝到workbench执行一下）
+		cout << "查询数据失败" << endl;
+		return;
+	}else {
+		cout << "存在好友" << endl;
+	}
 	//遍历好友的id列表
-
-	while (true) {
+	int friendId = 0;
+	_STRU_FRIEND_INFO friendInfo;
+	while (lstStr.size() > 0) {
 		//取出好友的id
-
+		friendId = stoi(lstStr.front());
+		lstStr.pop_front();
 		//根据好友的id查询好友的信息
-
+		getInfoById(friendId, &friendInfo);
 		//把好友的信息发回给客户端
-
+		if (m_mapIdSocket.count(userId) > 0) {
+			m_pTcpServerMediator->sendData((char*)&friendInfo, sizeof(friendInfo), m_mapIdSocket[userId]);
+		}else {
+			cout << "m_mapIdToSocket 中没有Id " << userId << endl;
+			return;
+		}
 	}
 }
 void CKernel::getInfoById(int userId , _STRU_FRIEND_INFO* info)
 {
 	cout << __func__ << endl;
-
+	info->id = userId;
+	if (m_mapIdSocket.count(userId) > 0) {
+		//在线
+		info->status = _def_status_online;
+	}else {
+		info->status = _def_status_offline;
+	}
+	//从数据库查询昵称，签名和头像ID
+	char sql[1024] = "";
+	list<string> lstStr;
+	sprintf_s(sql, "select name,feeling,iconid from t_user where id = '%d';", userId);
+	if (!mysql.SelectMySql(sql, 3, lstStr)) {
+		//1.没有连接数据库		2.sql语句有语法错误 3.列名和列表对不上（把日志中的sql语句拷贝到workbench执行一下）
+		cout << "查询数据失败" << endl;
+		return;
+	}
+	if (3 == lstStr.size()) {
+		//取出昵称
+		strcpy_s(info->name, sizeof(info->name), lstStr.front().c_str());
+		lstStr.pop_front();
+		//取出签名
+		strcpy_s(info->feeling, sizeof(info->feeling), lstStr.front().c_str());
+		lstStr.pop_front();
+		//取出头像ID
+		info->iconId = stoi(lstStr.front());
+		lstStr.pop_front();
+	}else {
+		cout << "查询昵称签名和头像id错误" << sql << endl;
+	}
 }
 //处理所有数据
 void CKernel::dealData(char* data, int len, unsigned long from)
@@ -113,8 +160,8 @@ void CKernel::dealRegisterRq(char* data, int len, unsigned long from)
 	cout << __func__ << endl;
 	//1.拆包
 	_STRU_REGISTER_RQ* rq = (_STRU_REGISTER_RQ*)data;
-
-	//2.校验电话号码是否被注册
+	 
+	//2.校验电话号码是否被注册 
 	//根据电话号码查询电话号码
 	//判断查询结果是否为空
 	char sql[1024] = "";
@@ -194,6 +241,9 @@ void CKernel::dealLoginRq(char* data, int len, unsigned long from)
 		if (pass == rq->password) {
 			//相等，就是登陆成功
 			rs.result = _def_login_success;
+			//存入自己的socket
+			m_mapIdSocket[userId] = from;
+			//获取userId对应的信息
 			getUserInfoAndFriendInfo(userId);
 		}else {
 			//不相等，登陆失败，密码错误

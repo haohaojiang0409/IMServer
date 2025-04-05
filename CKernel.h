@@ -2,6 +2,7 @@
 #include "INetMediator/INetMediator.h"
 #include "MySQL/CMySql.h"
 #include "Net/def.h"
+#include <map>
 class CKernel;
 typedef void (CKernel::*PFUN)(char* data, int len, unsigned long from);
 
@@ -37,5 +38,7 @@ private:
 	CMySql mysql;
 	//声明函数数组
 	PFUN m_protocol[_DEF_PROTOCOL_COUNT];
+	//保存成功的用户的socket（用户下线时删除对应的socket）
+	map<int, unsigned int> m_mapIdSocket;
 };
 
