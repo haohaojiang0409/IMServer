@@ -67,7 +67,8 @@ void CKernel::getUserInfoAndFriendInfo(int userId)
 	//把自己的信息发给客户端
 	if (m_mapIdSocket.count(userId) > 0) {
 		m_pTcpServerMediator->sendData((char*)&userInfo, sizeof(userInfo), m_mapIdSocket[userId]);
-	}else {
+	}
+	else {
 		cout << "m_mapIdSocket中没有id ： " << userId << endl;
 		return;
 	}
@@ -79,8 +80,6 @@ void CKernel::getUserInfoAndFriendInfo(int userId)
 		//1.没有连接数据库		2.sql语句有语法错误 3.列名和列表对不上（把日志中的sql语句拷贝到workbench执行一下）
 		cout << "查询数据失败" << endl;
 		return;
-	}else {
-		cout << "存在好友" << endl;
 	}
 	//遍历好友的id列表
 	int friendId = 0;
@@ -94,10 +93,14 @@ void CKernel::getUserInfoAndFriendInfo(int userId)
 		//把好友的信息发回给客户端
 		if (m_mapIdSocket.count(userId) > 0) {
 			m_pTcpServerMediator->sendData((char*)&friendInfo, sizeof(friendInfo), m_mapIdSocket[userId]);
-		}else {
+		}
+		else {
 			cout << "m_mapIdToSocket 中没有Id " << userId << endl;
 			return;
 		}
+	}
+	if (m_mapIdSocket.count(friendId) > 0){
+		m_pTcpServerMediator->sendData((char*)&friendInfo, sizeof(friendInfo), m_mapIdSocket[friendId]);
 	}
 }
 void CKernel::getInfoById(int userId , _STRU_FRIEND_INFO* info)
@@ -235,16 +238,19 @@ void CKernel::dealLoginRq(char* data, int len, unsigned long from)
 		//5.比较查询的密码和输入的密码
 		string pass = lstStr.front();
 		lstStr.pop_front();
-
-		int userId = stoi(lstStr.front());
+		int userId = stoi(lstStr.front());		
 		lstStr.pop_front();
 		if (pass == rq->password) {
 			//相等，就是登陆成功
 			rs.result = _def_login_success;
+			rs.userId = userId;
 			//存入自己的socket
 			m_mapIdSocket[userId] = from;
+			//6.返回给客户端
+			m_pTcpServerMediator->sendData((char*)&rs, sizeof(rs), from);
 			//获取userId对应的信息
 			getUserInfoAndFriendInfo(userId);
+			return;
 		}else {
 			//不相等，登陆失败，密码错误
 			rs.result = _def_login_password_error;

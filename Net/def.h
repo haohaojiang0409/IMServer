@@ -92,12 +92,14 @@ typedef struct _STRU_LOGIN_RQ {
 #define _def_login_password_error		(2)
 
 typedef struct _STRU_LOGIN_RS {
-	_STRU_LOGIN_RS() :result(_def_login_password_error), type(_DEF_LOGIN_RS) {
+	_STRU_LOGIN_RS() :type(_DEF_LOGIN_RS), userId(0) , result(_def_login_password_error) {
 
 	}
 	packType type;
+	int userId;
 	int result;
 }_STRU_LOGIN_RS;
+
 
 //ÃÌº”∫√”—«Î«Û
 typedef struct _STRU_ADD_FRIEND_RQ {
