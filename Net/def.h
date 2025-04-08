@@ -149,17 +149,20 @@ typedef struct _STRU_CHAT_RQ {
 #define _def_send_error				(1)
 
 typedef struct _STRU_CHAT_RS {
-	_STRU_CHAT_RS() :result(_def_send_error), type(_DEF_CHAT_RS) {}
+	_STRU_CHAT_RS() :result(_def_send_error), type(_DEF_CHAT_RS) ,friendId(0){}
 	packType type;
+	int friendId;
 	int result;
 }_STRU_CHAT_RS;
 
 //下线请求
 typedef struct _STRU_OFFLINE_RQ {
-	_STRU_OFFLINE_RQ() :result(0), type(_DEF_OFFLINE_RQ) {}
+	_STRU_OFFLINE_RQ() :type(_DEF_OFFLINE_RQ), result(0), userId(0) {}
 	packType type;
+	int userId;
 	int result;
 }_STRU_OFFLINE_RQ;
+
 
 //用户信息结构体
 typedef struct _STRU_FRIEND_INFO {

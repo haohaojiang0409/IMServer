@@ -28,10 +28,19 @@ public:
 
 	//处理所有数据
 	void dealData(char* data, int len, unsigned long from);
+
 	//处理注册请求
 	void dealRegisterRq(char* data, int len, unsigned long from);
+
 	//处理登录请求
 	void dealLoginRq(char* data, int len, unsigned long from);
+
+	//处理聊天请求
+	void dealChatRq(char* data, int len, unsigned long from);
+
+	//处理下线请求
+	void dealOfflineRq(char* data, int len, unsigned long from);
+
 	static CKernel* pCkernel;
 private:
 	INetMediator* m_pTcpServerMediator;

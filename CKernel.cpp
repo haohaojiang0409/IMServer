@@ -21,6 +21,8 @@ void CKernel::setProtocol()
 	//存入数据
 	m_protocol[_DEF_REGISTER_RQ - _DEF_PROTOCOL_BASE - 1] = &CKernel::dealRegisterRq;
 	m_protocol[_DEF_LOGIN_RQ	- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealLoginRq;
+	m_protocol[_DEF_CHAT_RQ		- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealChatRq;
+	m_protocol[_DEF_OFFLINE_RQ	- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealOfflineRq;
 }
 
 bool CKernel::startServer()
@@ -103,6 +105,8 @@ void CKernel::getUserInfoAndFriendInfo(int userId)
 		m_pTcpServerMediator->sendData((char*)&friendInfo, sizeof(friendInfo), m_mapIdSocket[friendId]);
 	}
 }
+
+//通过Id获取用户信息，传入结构体中
 void CKernel::getInfoById(int userId , _STRU_FRIEND_INFO* info)
 {
 	cout << __func__ << endl;
@@ -136,6 +140,7 @@ void CKernel::getInfoById(int userId , _STRU_FRIEND_INFO* info)
 		cout << "查询昵称签名和头像id错误" << sql << endl;
 	}
 }
+
 //处理所有数据
 void CKernel::dealData(char* data, int len, unsigned long from)
 {
@@ -158,6 +163,7 @@ void CKernel::dealData(char* data, int len, unsigned long from)
 	delete[]data;
 }
 
+//处理注册请求
 void CKernel::dealRegisterRq(char* data, int len, unsigned long from)
 {
 	cout << __func__ << endl;
@@ -214,6 +220,7 @@ void CKernel::dealRegisterRq(char* data, int len, unsigned long from)
 	m_pTcpServerMediator->sendData((char*)&rs, sizeof(rs), from);
 }
 
+//处理登录请求
 void CKernel::dealLoginRq(char* data, int len, unsigned long from)
 {
 	cout << __func__ << endl;
@@ -258,4 +265,55 @@ void CKernel::dealLoginRq(char* data, int len, unsigned long from)
 	}
 	//6.返回给客户端
 	m_pTcpServerMediator->sendData((char*)&rs, sizeof(rs), from);
+}
+
+//处理消息发送的函数
+void CKernel::dealChatRq(char* data, int len, unsigned long from)
+{
+	cout << __func__ << endl;
+	_STRU_CHAT_RQ* rq = (_STRU_CHAT_RQ*)data;
+	//判断好友是否在线
+	if (m_mapIdSocket.count(rq->friendId) > 0) {
+		//把聊天请求转发给好友
+		m_pTcpServerMediator->sendData(data, len, m_mapIdSocket[rq->friendId]);
+	}else {
+		//好友不在线给客户端回复发送失败
+		//正常软件，应该给不在线的好友发的消息存入数据库里，等到好友上线的时候
+		//再把数据库里面的聊天内容转发给好友，把数据库中保存的数据删掉
+		_STRU_CHAT_RS rs;
+		rs.friendId = rq->friendId;
+		m_pTcpServerMediator->sendData((char*)&rs, sizeof(rs), from);
+	}
+}
+
+void CKernel::dealOfflineRq(char* data, int len, unsigned long from)
+{
+	cout << __func__ << endl;
+	//1.拆包
+	_STRU_OFFLINE_RQ* rq = (_STRU_OFFLINE_RQ*)data;
+	//2.查询好友ID列表
+	char sql[1024] = "";
+	list<string> lstStr;
+	sprintf_s(sql, "select idB from t_friend where idA = '%d';", rq->userId);
+	if (!mysql.SelectMySql(sql, 1, lstStr)) {
+		cout << "查询好友ID失败" << endl;
+		return;
+	}
+	int friendId = 0;
+	//3.遍历好友ID列表
+	while (lstStr.size() > 0) {
+		//4.取出好友id
+		friendId = stoi(lstStr.front());
+		lstStr.pop_front();
+		//5.判断好友是否在线，在线就转发下线请求给好友
+		if (m_mapIdSocket.count(friendId) > 0) {
+			m_pTcpServerMediator->sendData(data, len, m_mapIdSocket[friendId]);
+		}
+	}
+	//6.关闭下线用户的socket，并且回收map的空间
+	auto ite = m_mapIdSocket.find(rq->userId);
+	if (ite != m_mapIdSocket.end()) {
+		closesocket(ite->second);
+		m_mapIdSocket.erase(ite);
+	}
 }
