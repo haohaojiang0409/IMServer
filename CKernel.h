@@ -41,6 +41,12 @@ public:
 	//处理下线请求
 	void dealOfflineRq(char* data, int len, unsigned long from);
 
+	//处理添加好友请求
+	void dealAddFriendRq(char* data, int len, unsigned long from);
+
+	//处理添加好友回复
+	void dealAddFriendRs(char* data, int len, unsigned long from);
+
 	static CKernel* pCkernel;
 private:
 	INetMediator* m_pTcpServerMediator;

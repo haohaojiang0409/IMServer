@@ -19,10 +19,12 @@ void CKernel::setProtocol()
 	cout << __func__ << endl;
 	memset(m_protocol, 0, sizeof(m_protocol));
 	//存入数据
-	m_protocol[_DEF_REGISTER_RQ - _DEF_PROTOCOL_BASE - 1] = &CKernel::dealRegisterRq;
-	m_protocol[_DEF_LOGIN_RQ	- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealLoginRq;
-	m_protocol[_DEF_CHAT_RQ		- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealChatRq;
-	m_protocol[_DEF_OFFLINE_RQ	- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealOfflineRq;
+	m_protocol[_DEF_REGISTER_RQ		- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealRegisterRq;
+	m_protocol[_DEF_LOGIN_RQ		- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealLoginRq;
+	m_protocol[_DEF_CHAT_RQ			- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealChatRq;
+	m_protocol[_DEF_OFFLINE_RQ		- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealOfflineRq;
+	m_protocol[_DEF_ADD_FRIEND_RQ	- _DEF_PROTOCOL_BASE - 1] = &CKernel::dealAddFriendRq;
+	m_protocol[_DEF_ADD_FRIEND_RS - _DEF_PROTOCOL_BASE - 1] = &CKernel::dealAddFriendRs;
 }
 
 bool CKernel::startServer()
@@ -315,5 +317,76 @@ void CKernel::dealOfflineRq(char* data, int len, unsigned long from)
 	if (ite != m_mapIdSocket.end()) {
 		closesocket(ite->second);
 		m_mapIdSocket.erase(ite);
+	}
+}
+
+//处理添加好友请求
+void CKernel::dealAddFriendRq(char* data, int len, unsigned long from)
+{
+	cout << __func__ << endl;
+	//1.拆包
+	_STRU_ADD_FRIEND_RQ* rq = (_STRU_ADD_FRIEND_RQ*)data;
+	//2.根据好友昵称查询好友id
+	char sql[1024] = "";
+	list<string> lstStr;
+	sprintf_s(sql, "select id from t_user where name = '%s';", rq->friendName);
+	if (!mysql.SelectMySql(sql, 1, lstStr)) {
+		cout << "查询好友id错误" << sql << endl;
+	}
+	int friendId = 0;
+	//3.判断查询结果是否为空
+	if (0 == lstStr.size()) {
+		_STRU_ADD_FRIEND_RS rs;
+		//4.查询结果是否为空，说明昵称不存在，添加失败_def_add_friend_not_exists
+		rs.result = _def_add_friend_not_exists;
+		strcpy_s(rs.friendName, sizeof(rs.friendName), rq->friendName);
+		//把添加结果返回给A客户端
+		m_pTcpServerMediator->sendData((char*)&rs, sizeof(rs), from);
+	}else {
+		//5.判断好友是否在线
+		if (m_mapIdSocket.count(rq->userId) > 0 ) {
+			//6.好友在线，把添加好友的请求转发给B客户端
+			friendId = stoi(lstStr.front());
+			lstStr.pop_front();
+			m_pTcpServerMediator->sendData(data, len, m_mapIdSocket[friendId]);
+		}
+		else {
+			//8.把添加结果返回给A客户端
+			_STRU_ADD_FRIEND_RS rs;
+			//7.好友不在线，添加失败_def_add_friend_offline
+			rs.result = _def_add_friend_offline;
+			strcpy_s(rs.friendName, sizeof(rs.friendName), rq->friendName);
+			m_pTcpServerMediator->sendData((char*)&rs, sizeof(rs), from);
+		}
+	}
+}
+
+//处理添加好友回复
+void CKernel::dealAddFriendRs(char* data, int len, unsigned long from)
+{
+	cout << __func__ << endl;
+	//1.拆包
+	_STRU_ADD_FRIEND_RS* rs = (_STRU_ADD_FRIEND_RS*)data;
+	//2.判断结果是否同意
+	if (_def_add_friend_success == rs->result) {
+		char sql[1024] = "";
+		list<string> lstStr;
+		sprintf_s(sql, "insert into t_friend values ( %d , %d );", rs->friendId, rs->userId);
+		if (!mysql.UpdateMySql(sql)) {
+			cout << "插入数据库错误" << sql << endl;
+			return;
+		}
+		sprintf_s(sql, "insert into t_friend values ( %d , %d );", rs->userId, rs->friendId);
+		if (!mysql.UpdateMySql(sql)) {
+			cout << "插入数据库错误" << sql << endl;
+			return;
+		}
+		//4.更新双端好友列表
+		getUserInfoAndFriendInfo(rs->friendId);
+	}
+
+	//5.不管结果如何，都要把结果转发给A客户端
+	if (m_mapIdSocket.count(rs->friendId)) {
+		m_pTcpServerMediator->sendData(data, len, m_mapIdSocket[rs->userId]);
 	}
 }

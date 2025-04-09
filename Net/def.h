@@ -100,10 +100,31 @@ typedef struct _STRU_LOGIN_RS {
 	int result;
 }_STRU_LOGIN_RS;
 
-
+#define _def_add_friend_success			(0)
+#define _def_add_friend_offline			(1)
+#define _def_add_friend_refuse			(2)
+#define _def_add_friend_not_exists		(3)
 //添加好友请求
+typedef struct _STRU_ADD_FRIEND_RS {
+	_STRU_ADD_FRIEND_RS() :type(_DEF_ADD_FRIEND_RS), result(_def_add_friend_offline), userId(0), friendId(0)
+	{
+		memset(friendName, 0, _DEF_MAX_LENGTH);
+		memset(userName, 0, _DEF_MAX_LENGTH);
+	}
+	packType type;
+	int userId;
+	int friendId;
+	char userName[_DEF_MAX_LENGTH];
+	char friendName[_DEF_MAX_LENGTH];
+	int result;
+}_STRU_ADD_FRIEND_RS;
+//添加好友回复:结果（添加成功、好友不存在、好友已拒绝、好友不在线），自己的ID、自己的昵称、好友的ID
+
+
+
 typedef struct _STRU_ADD_FRIEND_RQ {
-	_STRU_ADD_FRIEND_RQ():userId(0) , type(_DEF_ADD_FRIEND_RQ) {
+	_STRU_ADD_FRIEND_RQ() :type(_DEF_ADD_FRIEND_RQ), userId(0)
+	{
 		memset(userName, 0, _DEF_MAX_LENGTH);
 		memset(friendName, 0, _DEF_MAX_LENGTH);
 	}
@@ -112,23 +133,8 @@ typedef struct _STRU_ADD_FRIEND_RQ {
 	char userName[_DEF_MAX_LENGTH];
 	char friendName[_DEF_MAX_LENGTH];
 }_STRU_ADD_FRIEND_RQ;
-//添加好友回复:结果（添加成功、好友不存在、好友已拒绝、好友不在线），自己的ID、自己的昵称、好友的ID
 
-#define _def_add_friend_success			(0)
-#define _def_add_friend_offline			(1)
-#define _def_add_friend_refuse			(2)
-#define _def_add_friend_not_exists		(3)
 
-typedef struct _STRU_ADD_FRIEND_RS {
-	_STRU_ADD_FRIEND_RS() :result(0), userId(0), friendId(0), type(_DEF_ADD_FRIEND_RS) {
-		memset(userName, 0, _DEF_MAX_LENGTH);
-	}
-	packType type;
-	int result;
-	int userId;
-	char userName[_DEF_MAX_LENGTH];
-	int friendId;
-}_STRU_ADD_FRIEND_RS;
 
 //聊天请求
 //聊天内容、自己的ID和好友的ID
